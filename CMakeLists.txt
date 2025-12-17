@@ -9,6 +9,7 @@ add_executable(tftpd)
 
 target_include_directories(tftpd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_sources(tftpd PRIVATE 
-    main.cpp
+    main.cpp 
+    src/Address.cpp
 )
 

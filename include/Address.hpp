@@ -12,8 +12,7 @@ public:
     Address();
     explicit Address(const std::string& ip, uint16_t port);
     explicit Address(uint16_t port);
-    explicit Address(const struct sockaddr_in& address);    
-    ~Address();
+    explicit Address(const struct sockaddr_in& address);
 
     socklen_t getLength() const;
     std::string getIP() const;
