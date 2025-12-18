@@ -13,8 +13,8 @@ public:
     UDPSocket(const UDPSocket&) = delete;
     UDPSocket& operator=(const UDPSocket&) = delete;
 
-    ssize_t receiveFrom(const void* buffer, size_t len, Address& sender);
-    ssize_t sendTo(void* buffer, size_t len, const Address& target);
+    ssize_t receiveFrom(void* buffer, size_t len, Address& sender);
+    ssize_t sendTo(const void* buffer, size_t len, const Address& target);
 
     ~UDPSocket();
 };
