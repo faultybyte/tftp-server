@@ -5,11 +5,32 @@ project(tftp-server)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(tftpd)
-
-target_include_directories(tftpd PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_sources(tftpd PRIVATE 
-    main.cpp 
-    src/Address.cpp
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/52eb8108c5bdec04579160ae17225d66034bd723.zip
+  DOWNLOAD_EXTRACT_TIMESTAMP 1
 )
 
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+add_library(tftp-core STATIC
+    src/Address.cpp
+    src/Socket.cpp
+)
+target_include_directories(tftp-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+add_executable(tftpd main.cpp)
+target_link_libraries(tftpd PRIVATE tftp-core)
+
+enable_testing()
+
+add_executable(unit_tests tests/test_socket.cpp)
+target_link_libraries(unit_tests PRIVATE 
+    tftp-core
+    GTest::gtest_main
+)
+
+include(GoogleTest)
+gtest_discover_tests(unit_tests)
