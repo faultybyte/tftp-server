@@ -18,6 +18,7 @@ FetchContent_MakeAvailable(googletest)
 add_library(tftp-core STATIC
     src/Address.cpp
     src/Socket.cpp
+    src/AckPacket.cpp
 )
 target_include_directories(tftp-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
