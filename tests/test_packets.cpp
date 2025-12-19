@@ -112,3 +112,11 @@ TEST(PacketTests, ParseAck) {
     EXPECT_EQ(ack->getBlockNumber(), 1);
     EXPECT_EQ(ack->serialize(), raw);
 }
+
+TEST(PacketTests, ParseInvalidOpcode) {
+    std::vector<uint8_t> raw{0x00, 0x06, 0x00, 0x01};
+
+    EXPECT_THROW({
+        PacketParser::parse(raw);
+    }, std::runtime_error);
+}
