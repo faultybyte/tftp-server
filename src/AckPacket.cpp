@@ -1,5 +1,4 @@
 #include "AckPacket.hpp"
-#include <arpa/inet.h>
 
 AckPacket::AckPacket(uint16_t blockNumber) : blockNumber(blockNumber) {}
 
