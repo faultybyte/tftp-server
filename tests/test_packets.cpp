@@ -78,3 +78,21 @@ TEST(PacketTests, ParseRRQ) {
     EXPECT_EQ(rrq->getMode(), "octet");
     EXPECT_EQ(rrq->serialize(), raw);
 }
+
+TEST(PacketTests, ParseData) {
+    std::vector<uint8_t> raw{
+        0x00, 0x03, 
+        0x00, 0x01, 
+        0xaa, 0xbb
+    };
+
+    std::unique_ptr<Packet> packet = PacketParser::parse(raw);
+
+    DataPacket* rrq = dynamic_cast<DataPacket*>(packet.get());
+
+    EXPECT_NE(rrq, nullptr);
+    EXPECT_EQ(rrq->getOpcode(), Opcode::DATA);
+    EXPECT_EQ(rrq->getBlockNumber(), 1);
+    EXPECT_EQ(rrq->getData(), std::vector<uint8_t>({0xaa, 0xbb}));
+    EXPECT_EQ(rrq->serialize(), raw);
+}
