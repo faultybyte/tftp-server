@@ -5,6 +5,7 @@
 #include "AckPacket.hpp"
 #include "DataPacket.hpp"
 #include "ReadRequestPacket.hpp"
+#include "PacketParser.hpp"
 
 TEST(PacketTests, SerializeAckPacket) {
     AckPacket packet{1};
@@ -56,4 +57,24 @@ TEST(PacketTests, SerializeRRQPacket) {
 
     EXPECT_EQ(packet.serialize().size(), 17);
     EXPECT_EQ(packet.serialize(), expected);
+}
+
+TEST(PacketTests, ParseRRQ) {
+    std::vector<uint8_t> raw{
+        0x00, 0x01,
+        't', 'e', 's', 't', '.', 't', 'x', 't', 
+        0x00,
+        'o', 'c', 't', 'e', 't', 
+        0x00
+    };
+
+    std::unique_ptr<Packet> packet = PacketParser::parse(raw);
+
+    ReadRequestPacket* rrq = dynamic_cast<ReadRequestPacket*>(packet.get());
+
+    EXPECT_NE(rrq, nullptr);
+    EXPECT_EQ(rrq->getOpcode(), Opcode::RRQ);
+    EXPECT_EQ(rrq->getFilename(), "test.txt");
+    EXPECT_EQ(rrq->getMode(), "octet");
+    EXPECT_EQ(rrq->serialize(), raw);
 }
