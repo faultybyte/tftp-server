@@ -27,7 +27,7 @@ target_link_libraries(tftpd PRIVATE tftp-core)
 
 enable_testing()
 
-add_executable(unit_tests tests/test_socket.cpp)
+add_executable(unit_tests tests/test_socket.cpp tests/test_packets.cpp)
 target_link_libraries(unit_tests PRIVATE 
     tftp-core
     GTest::gtest_main
