@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include "AckPacket.hpp"
 #include "DataPacket.hpp"
+#include "ReadRequestPacket.hpp"
 
 TEST(PacketTests, SerializeAckPacket) {
     AckPacket packet{1};
@@ -38,4 +39,21 @@ TEST(PacketTests, DataPacketLargePayload) {
     EXPECT_THROW({
         DataPacket packet(1, payload);
     }, std::runtime_error);
+}
+
+TEST(PacketTests, SerializeRRQPacket) {
+    ReadRequestPacket packet{"test.txt", "octet"};
+
+    EXPECT_EQ(packet.getOpcode(), Opcode::RRQ);
+
+    std::vector<uint8_t> expected{
+        0x00, 0x01, 
+        't', 'e', 's', 't', '.', 't', 'x', 't', 
+        0x00, 
+        'o', 'c', 't', 'e', 't', 
+        0x00
+    };
+
+    EXPECT_EQ(packet.serialize().size(), 17);
+    EXPECT_EQ(packet.serialize(), expected);
 }
