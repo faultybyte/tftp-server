@@ -88,11 +88,27 @@ TEST(PacketTests, ParseData) {
 
     std::unique_ptr<Packet> packet = PacketParser::parse(raw);
 
-    DataPacket* rrq = dynamic_cast<DataPacket*>(packet.get());
+    DataPacket* data = dynamic_cast<DataPacket*>(packet.get());
 
-    EXPECT_NE(rrq, nullptr);
-    EXPECT_EQ(rrq->getOpcode(), Opcode::DATA);
-    EXPECT_EQ(rrq->getBlockNumber(), 1);
-    EXPECT_EQ(rrq->getData(), std::vector<uint8_t>({0xaa, 0xbb}));
-    EXPECT_EQ(rrq->serialize(), raw);
+    EXPECT_NE(data, nullptr);
+    EXPECT_EQ(data->getOpcode(), Opcode::DATA);
+    EXPECT_EQ(data->getBlockNumber(), 1);
+    EXPECT_EQ(data->getData(), std::vector<uint8_t>({0xaa, 0xbb}));
+    EXPECT_EQ(data->serialize(), raw);
+}
+
+TEST(PacketTests, ParseAck) {
+    std::vector<uint8_t> raw{
+        0x00, 0x04, 
+        0x00, 0x01
+    };
+
+    std::unique_ptr<Packet> packet = PacketParser::parse(raw);
+
+    AckPacket* ack = dynamic_cast<AckPacket*>(packet.get());
+
+    EXPECT_NE(ack, nullptr);
+    EXPECT_EQ(ack->getOpcode(), Opcode::ACK);
+    EXPECT_EQ(ack->getBlockNumber(), 1);
+    EXPECT_EQ(ack->serialize(), raw);
 }
