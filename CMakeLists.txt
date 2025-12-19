@@ -19,6 +19,7 @@ add_library(tftp-core STATIC
     src/Address.cpp
     src/Socket.cpp
     src/AckPacket.cpp
+    src/DataPacket.cpp
 )
 target_include_directories(tftp-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
