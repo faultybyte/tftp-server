@@ -3,6 +3,7 @@
 #include "Socket.hpp"
 #include "Address.hpp"
 #include "Packet.hpp"
+#include "ReadRequestPacket.hpp"
 #include <cstdint>
 #include <memory>
 
@@ -10,6 +11,7 @@ class TftpServer {
     UDPSocket socket;
     uint16_t port;
 
+    void handleRRQ(const Address& client, const ReadRequestPacket* packet);
     void handlePacket(const Address& from, std::unique_ptr<Packet> packet);
 
 public:
