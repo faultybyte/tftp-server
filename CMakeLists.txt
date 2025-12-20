@@ -22,6 +22,7 @@ add_library(tftp-core STATIC
     src/DataPacket.cpp
     src/ReadRequestPacket.cpp
     src/PacketParser.cpp
+    src/Server.cpp
 )
 target_include_directories(tftp-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
