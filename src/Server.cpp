@@ -6,6 +6,7 @@
 #include "Server.hpp"
 #include "PacketParser.hpp"
 #include "DataPacket.hpp"
+#include "AckPacket.hpp"
 
 TftpServer::TftpServer(uint16_t port) : port(port), socket(port) {}
 
@@ -20,19 +21,67 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
     }
 
     std::vector<uint8_t> buffer(512);
+    ssize_t bytesSent = 0;
+    std::streamsize bytesRead = 0;
+    int blockNumber = 1;
 
-    file.read(reinterpret_cast<char*>(buffer.data()), 512);
-    std::streamsize bytesRead = file.gcount();
-    buffer.resize(bytesRead);
+    const int TRIES = 5;
+    const int TIMEOUT = 1;
 
-    DataPacket responsePacket(1, buffer);
-    std::vector<uint8_t> raw = responsePacket.serialize();
+    socket.setRecieveTimeout(TIMEOUT);
 
-    ssize_t bytesSent = socket.sendTo(raw.data(), raw.size(), client);
-    if (bytesSent == -1) {
-        std::cerr << "Failed to send DATA packet\n";
-        return;
-    }
+    do {
+        file.read(reinterpret_cast<char*>(buffer.data()), 512);
+        bytesRead = file.gcount();
+        buffer.resize(bytesRead);
+
+        bool failed = true;
+        DataPacket responsePacket(blockNumber, buffer);
+        std::vector<uint8_t> raw = responsePacket.serialize();
+
+        for (int i = 0; i < TRIES; ++i) {   // Retry Loop
+            bytesSent = socket.sendTo(raw.data(), raw.size(), client);
+            if (bytesSent == -1) {
+                std::cerr << "Failed to send DATA packet\n";
+                return;
+            }
+
+            std::vector<uint8_t> rxBuffer(512);
+            Address sender;
+
+            ssize_t bytesRecieved = socket.receiveFrom(rxBuffer.data(), rxBuffer.size(), sender);
+            if (bytesRecieved == -1) {
+                std::cerr << "No reply from " + client.getIP() << '\n';
+                continue;
+            }
+
+            rxBuffer.resize(bytesRecieved);
+
+            try {
+                std::unique_ptr<Packet> reply = PacketParser::parse(rxBuffer);
+                AckPacket* ack = dynamic_cast<AckPacket*>(reply.get());
+
+                if (ack && ack->getBlockNumber() == blockNumber) {
+                    ++blockNumber;
+                    failed = false;
+                    break;
+                }
+                
+                throw std::runtime_error("Invalid ACK packet from " + client.getIP());
+            } catch (const std::runtime_error& err) {
+                std::cerr << err.what() << '\n';
+            }
+        }
+
+        if (failed) {
+            std::cerr << "File transfer timed out\n";
+            break;
+        }
+
+        buffer.resize(512);
+    } while (bytesRead == 512);
+
+    socket.setRecieveTimeout(0);
 }
 
 void TftpServer::handlePacket(const Address& from, std::unique_ptr<Packet> packet) {
