@@ -15,6 +15,7 @@ public:
 
     ssize_t receiveFrom(void* buffer, size_t len, Address& sender);
     ssize_t sendTo(const void* buffer, size_t len, const Address& target);
+    void setRecieveTimeout(int seconds);
 
     ~UDPSocket();
 };

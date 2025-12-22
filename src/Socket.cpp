@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 UDPSocket::UDPSocket(uint16_t port) {
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -38,4 +39,13 @@ ssize_t UDPSocket::receiveFrom(void* buffer, size_t len, Address& sender) {
         sender = Address(rawAddr);
 
     return size;
+}
+
+void UDPSocket::setRecieveTimeout(int seconds) {
+    struct timeval tv;
+    tv.tv_sec = seconds;
+    tv.tv_usec = 0;
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) == -1)
+        throw std::runtime_error("Failed to set socket timeout");
 }
