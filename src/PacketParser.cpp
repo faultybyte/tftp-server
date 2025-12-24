@@ -2,6 +2,7 @@
 #include "AckPacket.hpp"
 #include "DataPacket.hpp"
 #include "ReadRequestPacket.hpp"
+#include "ErrorPacket.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -40,6 +41,20 @@ static std::unique_ptr<Packet> parseReadRequestPacket(const std::vector<uint8_t>
     return std::make_unique<ReadRequestPacket>(filename, mode);
 }
 
+static std::unique_ptr<Packet> parseErrorPacket(const std::vector<uint8_t>& buffer) {
+    if (buffer.size() < 5)
+        throw std::runtime_error("Invalid ERROR packet size");
+
+    uint16_t errorCode = (buffer[2] << 8) | buffer[3];
+    auto msgEnd = std::find(buffer.begin() + 4, buffer.end(), 0x00);
+    if (msgEnd == buffer.end())
+        throw std::runtime_error("Invalid ERROR packet");
+        
+    std::string errorMessage(buffer.begin() + 4, msgEnd);
+
+    return std::make_unique<ErrorPacket>(errorCode, errorMessage);
+}
+
 std::unique_ptr<Packet> PacketParser::parse(const std::vector<uint8_t>& buffer) {
     if (buffer.size() < 2)
         throw std::runtime_error("Invalid packet size");
@@ -53,6 +68,8 @@ std::unique_ptr<Packet> PacketParser::parse(const std::vector<uint8_t>& buffer) 
             return parseDataPacket(buffer);
         case 4:
             return parseAckPacket(buffer);
+        case 5:
+            return parseErrorPacket(buffer);
         default:
             throw std::runtime_error("Unknown opcode");
     }
