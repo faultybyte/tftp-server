@@ -21,6 +21,7 @@ add_library(tftp-core STATIC
     src/AckPacket.cpp
     src/DataPacket.cpp
     src/ReadRequestPacket.cpp
+    src/ErrorPacket.cpp
     src/PacketParser.cpp
     src/Server.cpp
 )
