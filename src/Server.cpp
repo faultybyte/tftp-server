@@ -7,6 +7,7 @@
 #include "PacketParser.hpp"
 #include "DataPacket.hpp"
 #include "AckPacket.hpp"
+#include "ErrorPacket.hpp"
 
 TftpServer::TftpServer(uint16_t port) : port(port), socket(port) {}
 
@@ -16,7 +17,13 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
 
     std::ifstream file(packet->getFilename(), std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "File not found!\n";   // TODO: Implement ERROR packets
+        ErrorPacket errPacket(1, "File not found");
+        std::vector<uint8_t> raw = errPacket.serialize();
+
+        ssize_t bytesSent = socket.sendTo(raw.data(), raw.size(), client);
+        if (bytesSent == -1)
+            std::cerr << "Failed to send ERROR packet";
+            
         return;
     }
 
