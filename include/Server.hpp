@@ -4,6 +4,7 @@
 #include "Address.hpp"
 #include "Packet.hpp"
 #include "ReadRequestPacket.hpp"
+#include "WriteRequestPacket.hpp"
 #include <cstdint>
 #include <memory>
 
@@ -12,6 +13,7 @@ class TftpServer {
     uint16_t port;
 
     void handleRRQ(const Address& client, const ReadRequestPacket* packet);
+    void handleWRQ(const Address& client, const WriteRequestPacket* packet);
     void handlePacket(const Address& from, std::unique_ptr<Packet> packet);
 
 public:
