@@ -5,6 +5,8 @@
 #include "AckPacket.hpp"
 #include "DataPacket.hpp"
 #include "ReadRequestPacket.hpp"
+#include "WriteRequestPacket.hpp"
+#include "ErrorPacket.hpp"
 #include "PacketParser.hpp"
 
 TEST(PacketTests, SerializeAckPacket) {
@@ -59,6 +61,23 @@ TEST(PacketTests, SerializeRRQPacket) {
     EXPECT_EQ(packet.serialize(), expected);
 }
 
+TEST(PacketTests, SerializeWRQPacket) {
+    WriteRequestPacket packet{"test.txt", "octet"};
+
+    EXPECT_EQ(packet.getOpcode(), Opcode::WRQ);
+
+    std::vector<uint8_t> expected{
+        0x00, 0x02, 
+        't', 'e', 's', 't', '.', 't', 'x', 't', 
+        0x00, 
+        'o', 'c', 't', 'e', 't', 
+        0x00
+    };
+
+    EXPECT_EQ(packet.serialize().size(), 17);
+    EXPECT_EQ(packet.serialize(), expected);
+}
+
 TEST(PacketTests, ParseRRQ) {
     std::vector<uint8_t> raw{
         0x00, 0x01,
@@ -77,6 +96,22 @@ TEST(PacketTests, ParseRRQ) {
     EXPECT_EQ(rrq->getFilename(), "test.txt");
     EXPECT_EQ(rrq->getMode(), "octet");
     EXPECT_EQ(rrq->serialize(), raw);
+}
+
+TEST(PacketTests, SerializeErrorPacket) {
+    ErrorPacket packet{1, "File not found"};
+
+    EXPECT_EQ(packet.getOpcode(), Opcode::ERROR);
+
+    std::vector<uint8_t> expected{
+        0x00, 0x05, 
+        0x00, 0x01, 
+        'F', 'i', 'l', 'e', ' ', 'n', 'o', 't', ' ', 'f', 'o', 'u', 'n', 'd', 
+        0x00
+    };
+
+    EXPECT_EQ(packet.serialize().size(), 19);
+    EXPECT_EQ(packet.serialize(), expected);
 }
 
 TEST(PacketTests, ParseData) {
