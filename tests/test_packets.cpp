@@ -78,6 +78,22 @@ TEST(PacketTests, SerializeWRQPacket) {
     EXPECT_EQ(packet.serialize(), expected);
 }
 
+TEST(PacketTests, SerializeErrorPacket) {
+    ErrorPacket packet{1, "File not found"};
+
+    EXPECT_EQ(packet.getOpcode(), Opcode::ERROR);
+
+    std::vector<uint8_t> expected{
+        0x00, 0x05, 
+        0x00, 0x01, 
+        'F', 'i', 'l', 'e', ' ', 'n', 'o', 't', ' ', 'f', 'o', 'u', 'n', 'd', 
+        0x00
+    };
+
+    EXPECT_EQ(packet.serialize().size(), 19);
+    EXPECT_EQ(packet.serialize(), expected);
+}
+
 TEST(PacketTests, ParseRRQ) {
     std::vector<uint8_t> raw{
         0x00, 0x01,
@@ -96,22 +112,6 @@ TEST(PacketTests, ParseRRQ) {
     EXPECT_EQ(rrq->getFilename(), "test.txt");
     EXPECT_EQ(rrq->getMode(), "octet");
     EXPECT_EQ(rrq->serialize(), raw);
-}
-
-TEST(PacketTests, SerializeErrorPacket) {
-    ErrorPacket packet{1, "File not found"};
-
-    EXPECT_EQ(packet.getOpcode(), Opcode::ERROR);
-
-    std::vector<uint8_t> expected{
-        0x00, 0x05, 
-        0x00, 0x01, 
-        'F', 'i', 'l', 'e', ' ', 'n', 'o', 't', ' ', 'f', 'o', 'u', 'n', 'd', 
-        0x00
-    };
-
-    EXPECT_EQ(packet.serialize().size(), 19);
-    EXPECT_EQ(packet.serialize(), expected);
 }
 
 TEST(PacketTests, ParseData) {
@@ -146,6 +146,25 @@ TEST(PacketTests, ParseAck) {
     EXPECT_EQ(ack->getOpcode(), Opcode::ACK);
     EXPECT_EQ(ack->getBlockNumber(), 1);
     EXPECT_EQ(ack->serialize(), raw);
+}
+
+TEST(PacketTests, ParseError) {
+    std::vector<uint8_t> raw{
+        0x00, 0x05, 
+        0x00, 0x01, 
+        'F', 'i', 'l', 'e', ' ', 'n', 'o', 't', ' ', 'f', 'o', 'u', 'n', 'd', 
+        0x00
+    };
+
+    std::unique_ptr<Packet> packet = PacketParser::parse(raw);
+
+    ErrorPacket* err = dynamic_cast<ErrorPacket*>(packet.get());
+
+    EXPECT_NE(err, nullptr);
+    EXPECT_EQ(err->getOpcode(), Opcode::ERROR);
+    EXPECT_EQ(err->getErrorCode(), 1);
+    EXPECT_EQ(err->getErrorMessage(), "File not found");
+    EXPECT_EQ(err->serialize(), raw);
 }
 
 TEST(PacketTests, ParseInvalidOpcode) {
