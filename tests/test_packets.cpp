@@ -114,6 +114,26 @@ TEST(PacketTests, ParseRRQ) {
     EXPECT_EQ(rrq->serialize(), raw);
 }
 
+TEST(PacketTests, ParseWRQ) {
+    std::vector<uint8_t> raw{
+        0x00, 0x02,
+        't', 'e', 's', 't', '.', 't', 'x', 't', 
+        0x00,
+        'o', 'c', 't', 'e', 't', 
+        0x00
+    };
+
+    std::unique_ptr<Packet> packet = PacketParser::parse(raw);
+
+    WriteRequestPacket* wrq = dynamic_cast<WriteRequestPacket*>(packet.get());
+
+    EXPECT_NE(wrq, nullptr);
+    EXPECT_EQ(wrq->getOpcode(), Opcode::WRQ);
+    EXPECT_EQ(wrq->getFilename(), "test.txt");
+    EXPECT_EQ(wrq->getMode(), "octet");
+    EXPECT_EQ(wrq->serialize(), raw);
+}
+
 TEST(PacketTests, ParseData) {
     std::vector<uint8_t> raw{
         0x00, 0x03, 
