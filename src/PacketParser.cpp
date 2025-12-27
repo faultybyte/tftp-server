@@ -2,6 +2,7 @@
 #include "AckPacket.hpp"
 #include "DataPacket.hpp"
 #include "ReadRequestPacket.hpp"
+#include "WriteRequestPacket.hpp"
 #include "ErrorPacket.hpp"
 #include <algorithm>
 #include <stdexcept>
@@ -41,6 +42,22 @@ static std::unique_ptr<Packet> parseReadRequestPacket(const std::vector<uint8_t>
     return std::make_unique<ReadRequestPacket>(filename, mode);
 }
 
+static std::unique_ptr<Packet> parseWriteRequestPacket(const std::vector<uint8_t>& buffer) {
+    auto filenameEnd = std::find(buffer.begin() + 2, buffer.end(), 0x00);
+    if (filenameEnd == buffer.end())
+        throw std::runtime_error("Invalid WRQ packet");
+
+    std::string filename(buffer.begin() + 2, filenameEnd);
+
+    auto modeEnd = std::find(filenameEnd + 1, buffer.end(), 0x00);
+    if (modeEnd == buffer.end())
+        throw std::runtime_error("Invalid WRQ packet");
+
+    std::string mode(filenameEnd + 1, modeEnd);
+
+    return std::make_unique<WriteRequestPacket>(filename, mode);
+}
+
 static std::unique_ptr<Packet> parseErrorPacket(const std::vector<uint8_t>& buffer) {
     if (buffer.size() < 5)
         throw std::runtime_error("Invalid ERROR packet size");
@@ -64,6 +81,8 @@ std::unique_ptr<Packet> PacketParser::parse(const std::vector<uint8_t>& buffer) 
     switch (op) {
         case 1:
             return parseReadRequestPacket(buffer);
+        case 2:
+            return parseWriteRequestPacket(buffer);
         case 3:
             return parseDataPacket(buffer);
         case 4:
