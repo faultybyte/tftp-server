@@ -7,10 +7,12 @@
 #include "WriteRequestPacket.hpp"
 #include <cstdint>
 #include <memory>
+#include <atomic>
 
 class TftpServer {
     UDPSocket socket;
     uint16_t port;
+    std::atomic<bool> running;
 
     void handleRRQ(const Address& client, const ReadRequestPacket* packet);
     void handleWRQ(const Address& client, const WriteRequestPacket* packet);
@@ -19,4 +21,5 @@ class TftpServer {
 public:
     explicit TftpServer(uint16_t port);
     void start();
+    void stop();
 };

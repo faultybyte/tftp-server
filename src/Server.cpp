@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cerrno>
 #include <arpa/inet.h>
 
 #include "Server.hpp"
@@ -12,7 +13,7 @@
 static const int TRIES = 5;
 static const int TIMEOUT = 1;
 
-TftpServer::TftpServer(uint16_t port) : port(port), socket(port) {}
+TftpServer::TftpServer(uint16_t port) : port(port), socket(port), running(true) {}
 
 void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packet) {
     std::cout << "Client " << client.getIP() 
@@ -88,7 +89,7 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
         buffer.resize(512);
     } while (bytesRead == 512);
 
-    socket.setRecieveTimeout(0);
+    socket.setRecieveTimeout(1);
 }
 
 void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* packet) {
@@ -172,7 +173,7 @@ void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* pack
         }
     }
 
-    socket.setRecieveTimeout(0);
+    socket.setRecieveTimeout(1);
 }
 
 void TftpServer::handlePacket(const Address& from, std::unique_ptr<Packet> packet) {
@@ -196,13 +197,16 @@ void TftpServer::start() {
     std::vector<uint8_t> buffer(1024);
     std::cout << "TFTP Server started on port " << port << "...\n";
 
-    while (true) {
+    while (running) {
         Address sender;
 
         buffer.resize(1024);
+        socket.setRecieveTimeout(1);
         ssize_t bytes = socket.receiveFrom(buffer.data(), buffer.size(), sender);
 
-        if (bytes < 0) {
+        if (bytes == -1 && (errno == EAGAIN || errno == EWOULDBLOCK || errno == EINTR)) {
+            continue;
+        } else if (bytes < 0) {
             std::cerr << "Socket receive error\n";
             continue;
         }
@@ -216,4 +220,8 @@ void TftpServer::start() {
             std::cerr << "Bad packet from " << sender.getIP() << ": " << err.what() << '\n';
         }
     }
+}
+
+void TftpServer::stop() {
+    running =  false;
 }
