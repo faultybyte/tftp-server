@@ -19,12 +19,13 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
     std::cout << "Client " << client.getIP() 
             << " requested file: " << packet->getFilename() << '\n';
 
+    UDPSocket connSocket(0);
     std::ifstream file(packet->getFilename(), std::ios::binary);
     if (!file.is_open()) {
         ErrorPacket errPacket(1, "File not found");
         std::vector<uint8_t> raw = errPacket.serialize();
 
-        ssize_t bytesSent = socket.sendTo(raw.data(), raw.size(), client);
+        ssize_t bytesSent = connSocket.sendTo(raw.data(), raw.size(), client);
         if (bytesSent == -1)
             std::cerr << "Failed to send ERROR packet";
             
@@ -36,7 +37,7 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
     std::streamsize bytesRead = 0;
     int blockNumber = 1;
 
-    socket.setRecieveTimeout(TIMEOUT);
+    connSocket.setRecieveTimeout(TIMEOUT);
 
     do {
         file.read(reinterpret_cast<char*>(buffer.data()), 512);
@@ -48,7 +49,7 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
         std::vector<uint8_t> raw = responsePacket.serialize();
 
         for (int i = 0; i < TRIES; ++i) {   // Retry Loop
-            bytesSent = socket.sendTo(raw.data(), raw.size(), client);
+            bytesSent = connSocket.sendTo(raw.data(), raw.size(), client);
             if (bytesSent == -1) {
                 std::cerr << "Failed to send DATA packet\n";
                 return;
@@ -57,7 +58,7 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
             std::vector<uint8_t> rxBuffer(512);
             Address sender;
 
-            ssize_t bytesRecieved = socket.receiveFrom(rxBuffer.data(), rxBuffer.size(), sender);
+            ssize_t bytesRecieved = connSocket.receiveFrom(rxBuffer.data(), rxBuffer.size(), sender);
             if (bytesRecieved == -1) {
                 std::cerr << "No reply from " + client.getIP() << '\n';
                 continue;
@@ -88,14 +89,13 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
 
         buffer.resize(512);
     } while (bytesRead == 512);
-
-    socket.setRecieveTimeout(1);
 }
 
 void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* packet) {
     std::cout << "Client " << client.getIP() 
             << " writing to file: " << packet->getFilename() << '\n';
 
+    UDPSocket connSocket(0);
     std::ofstream file(packet->getFilename(), std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open " << packet->getFilename() 
@@ -104,7 +104,7 @@ void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* pack
         ErrorPacket err{2, "Access Violation"};
         std::vector<uint8_t> raw = err.serialize();
         
-        socket.sendTo(raw.data(), raw.size(), client);
+        connSocket.sendTo(raw.data(), raw.size(), client);
         
         return; 
     }
@@ -116,23 +116,23 @@ void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* pack
     std::streamsize bytesWritten = 0;
     std::vector<uint8_t> raw = ack.serialize();
 
-    socket.sendTo(raw.data(), raw.size(), client);
+    connSocket.sendTo(raw.data(), raw.size(), client);
 
-    socket.setRecieveTimeout(TIMEOUT);
+    connSocket.setRecieveTimeout(TIMEOUT);
 
     while (true) {
         Address sender;
         std::vector<uint8_t> rxBuffer(516);
 
         ssize_t bytesRecieved = 
-            socket.receiveFrom(rxBuffer.data(), rxBuffer.size(), sender);
+            connSocket.receiveFrom(rxBuffer.data(), rxBuffer.size(), sender);
         if (bytesRecieved == -1) {
             std::cerr << "No reply from " << client.getIP() << '\n';
             if (trial++ > TRIES) break;
 
             AckPacket retry{static_cast<uint16_t>(prevBlock)};
             raw = retry.serialize();
-            socket.sendTo(raw.data(), raw.size(), client);
+            connSocket.sendTo(raw.data(), raw.size(), client);
 
             continue;
         }
@@ -154,7 +154,7 @@ void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* pack
 
                 AckPacket reply{static_cast<uint16_t>(prevBlock)};
                 std::vector<uint8_t> rawReply = reply.serialize();
-                socket.sendTo(rawReply.data(), rawReply.size(), client);
+                connSocket.sendTo(rawReply.data(), rawReply.size(), client);
 
                 if (data.size() < 512) {
                     std::cout << "Transfer complete\n";
@@ -167,13 +167,11 @@ void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* pack
             AckPacket retry{static_cast<uint16_t>(prevBlock)};
             std::vector<uint8_t> rawRetry = retry.serialize();
 
-            socket.sendTo(rawRetry.data(), rawRetry.size(), sender);
+            connSocket.sendTo(rawRetry.data(), rawRetry.size(), sender);
         } catch (const std::exception& err) {
             std::cerr << err.what() << '\n';
         }
     }
-
-    socket.setRecieveTimeout(1);
 }
 
 void TftpServer::handlePacket(const Address& from, std::unique_ptr<Packet> packet) {
