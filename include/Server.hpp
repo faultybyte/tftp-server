@@ -8,11 +8,14 @@
 #include <cstdint>
 #include <memory>
 #include <atomic>
+#include <thread>
+#include <mutex>
 
 class TftpServer {
     UDPSocket socket;
     uint16_t port;
     std::atomic<bool> running;
+    std::mutex consoleMutex;
 
     void handleRRQ(const Address& client, const ReadRequestPacket* packet);
     void handleWRQ(const Address& client, const WriteRequestPacket* packet);

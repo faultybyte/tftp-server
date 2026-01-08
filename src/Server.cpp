@@ -89,6 +89,8 @@ void TftpServer::handleRRQ(const Address& client, const ReadRequestPacket* packe
 
         buffer.resize(512);
     } while (bytesRead == 512);
+
+    std::cout << "Transfer complete\n";
 }
 
 void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* packet) {
@@ -175,20 +177,31 @@ void TftpServer::handleWRQ(const Address& client, const WriteRequestPacket* pack
 }
 
 void TftpServer::handlePacket(const Address& from, std::unique_ptr<Packet> packet) {
-    if (packet->getOpcode() == Opcode::RRQ) {
-        ReadRequestPacket* rrq = dynamic_cast<ReadRequestPacket*>(packet.get());
-
-        if (rrq)
-            handleRRQ(from, rrq);
-    } else if (packet->getOpcode() == Opcode::WRQ) {
-        WriteRequestPacket* wrq = dynamic_cast<WriteRequestPacket*>(packet.get());
-
-        if (wrq)
-            handleWRQ(from, wrq);
+    {
+        std::lock_guard<std::mutex> lock(consoleMutex);
+        std::cout << "Received packet type " << static_cast<int>(packet->getOpcode()) 
+            << " from IP " << from.getIP() << ":" << from.getPort() << '\n';
     }
 
-    std::cout << "Received packet type " << static_cast<int>(packet->getOpcode()) 
-            << " from IP " << from.getIP() << '\n';
+    if (packet->getOpcode() == Opcode::RRQ) {
+        std::thread thrd([this, from, pkt = std::move(packet)] () {
+            auto rrq = dynamic_cast<ReadRequestPacket*>(pkt.get());
+
+            if (rrq)
+                handleRRQ(from, rrq);
+        });
+
+        thrd.detach();
+    } else if (packet->getOpcode() == Opcode::WRQ) {
+        std::thread thrd([this, from, pkt = std::move(packet)] () {
+            auto wrq = dynamic_cast<WriteRequestPacket*>(pkt.get());
+
+            if (wrq)
+                handleWRQ(from, wrq);
+        });
+
+        thrd.detach();
+    }
 }
 
 void TftpServer::start() {
